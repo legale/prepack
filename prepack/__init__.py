@@ -125,7 +125,7 @@ class prepack:
     @staticmethod
     def df_filter_and(df, fltr, iloc=False):
         import numpy as np
-        lst = prepack.df_filter_prepare_masks(df, fltr, iloc)
+        lst = prepack.df_filter_parse_conditions(df, fltr, iloc)
         if len(lst) == 1:
             return lst[0]
         else:
@@ -137,7 +137,7 @@ class prepack:
     @staticmethod
     def df_filter_or(df, fltr, iloc=False):
         import numpy as np
-        lst = prepack.df_filter_prepare_masks(df, fltr, iloc)
+        lst = prepack.df_filter_parse_conditions(df, fltr, iloc)
         if len(lst) == 1:
             return lst[0]
         else:
@@ -148,36 +148,64 @@ class prepack:
 
     # Этот метод нужен для подготовки списка масок для методов df_filter_or df_filter_and
     @staticmethod
-    def df_filter_prepare_masks(df, fltr, iloc=False):
+    def df_filter_parse_conditions(df, fltr, iloc):
         lst = []
         for col in fltr:
             cond = fltr[col]
-            if str(cond)[:1] == '~':
-                isnot = True
-                cond = cond[1:]
-            else:
-                isnot = False
+            lst += prepack.df_filter_parse_condition(df, col, cond, iloc)
+        return lst
 
-            if not iloc:
-                if cond == 'isnum':
-                    mask = df.loc[:, col].astype(str).str.replace('.', '').str.isnumeric()
-                elif cond == 'isblank':
-                    mask = df.loc[:, col].astype(str).str.strip() == ''
-                else:
-                    mask = df.loc[:, col] == cond
-            else:
-                if cond == 'isnum':
-                    mask = df.iloc[:, col].astype(str).str.replace('.', '').str.isnumeric()
-                elif cond == 'isblank':
-                    mask = df.iloc[:, col].astype(str).str.strip() == ''
-                else:
-                    mask = df.iloc[:, col] == cond
+    @staticmethod
+    def df_filter_parse_condition(df, col, cond, iloc):
+        lst = []
+        class_ = cond.__class__.__name__
 
-            if isnot:
-                lst.append(~mask)
-            else:
+        if class_ == 'str':
+            mask = prepack.df_filter_prepare_mask(df, col, cond, iloc)
+            lst.append(mask)
+        elif class_ in ['list', 'tuple']:
+            for c in cond:
+                mask = prepack.df_filter_prepare_mask(df, col, c, iloc)
                 lst.append(mask)
         return lst
+
+
+    @staticmethod
+    def df_filter_prepare_mask(df, col, cond, iloc=False):
+        lst = []
+        operator = str(cond)[:1]
+
+        if operator in ['~', '>', '<']:
+            cond = cond[1:]
+        else:
+            operator = None
+
+        if iloc:
+            s = df.iloc[:, col]
+        else:
+            s = df.loc[:, col]
+
+        if cond == 'isnum':
+            mask = s.astype(str).str.replace('.', '').str.isnumeric()
+        elif cond == 'isblank':
+            mask = s.astype(str).str.strip() == ''
+        elif cond == 'istext':
+            m1 = ~(s.astype(str).str.strip() == '')
+            m2 = ~s.astype(str).str.replace('.', '').str.isnumeric()
+            mask = m1 & m2
+        else:
+            if operator == '<':
+                mask = s < cond
+            elif operator == '>':
+                mask = s > cond
+            else:
+                mask = s == cond
+
+        if operator == '~':
+            return ~mask
+        else:
+            return mask
+
 
     # делает слияние двух датафреймов через наиболее близкое расстояние Левенштейна,
     # лимит по расстоянию в % от длины длинной строки
