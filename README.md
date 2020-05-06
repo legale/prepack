@@ -1,5 +1,5 @@
 # prepack
-Python data preparation library
+Python excel based data preparation library
 
 ## Usage
 ```
