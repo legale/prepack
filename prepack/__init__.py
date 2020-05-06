@@ -1,5 +1,5 @@
 class prepack:
-    """Data preparation library v0.3.1"""
+    """Data preparation library"""
 
     def __init__(self):
         pass
