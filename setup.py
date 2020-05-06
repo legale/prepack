@@ -3,6 +3,10 @@ from setuptools import setup
 setup(name='prepack',
       version='0.3.1',
       description='Python excel based data preparation library',
+      long_description="Library for preparing data for analysis. "
+                       "Allows you to load and easily filter many same structure csv or xls, xlsx files."
+                       "Allows matching tables by incomplete row matching over the shortest Levenshtein "
+                       "distance, just like Pandas df.merge()",
       url='http://github.com/legale/prepack',
       author='rumi',
       author_email='legale.legale@gmail.com',
