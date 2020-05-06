@@ -10,7 +10,7 @@ lst = ['first',
        'четвертый столбец очень длинный, гораздо длиннее обычного, посмотрим на результат'
        ]
 
-print('print 2 cols p2c:\n', pp.p2c(lst))
+print('print 2 cols p2c:\n' + pp.p2c(lst))
 
 # dataframes levenshtein merge
 cols = ['col']

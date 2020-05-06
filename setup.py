@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='prepack',
-      version='0.3.2',
+      version='0.3.3',
       description='Python excel based data preparation library',
       long_description="Library for preparing data for analysis. "
                        "Allows you to load and easily filter many same structure csv or xls, xlsx files. "
@@ -13,7 +13,7 @@ setup(name='prepack',
       license='MIT',
       packages=['prepack'],
       zip_safe=False,
-      install_requires=['numpy','pandas','python-levenshtein'],
+      install_requires=['numpy','pandas','python-levenshtein','xlrd'],
       keywords = ['xls', 'excel', 'parser', 'pandas','data preparation'],
       classifiers=[
             'Operating System :: OS Independent',

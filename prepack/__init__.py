@@ -35,11 +35,11 @@ class prepack:
         # вытаскиваем и делаем строковыми значения из обоих списков
         for i in range(size_max):
             ss = ''
-            if i < size1 and not Prepack.isnan(lst1[i]):
+            if i < size1 and not prepack.isnan(lst1[i]):
                 s = str(lst1[i])
                 if len(s) > 0:
                     ss += s
-            if i < size2 and not Prepack.isnan(lst2[i]):
+            if i < size2 and not prepack.isnan(lst2[i]):
                 s = str(lst2[i])
                 if len(s) > 0:
                     if len(ss) > 0:
@@ -125,7 +125,7 @@ class prepack:
     @staticmethod
     def df_filter_and(df, fltr, iloc=False):
         import numpy as np
-        lst = Prepack.df_filter_prepare_masks(df, fltr, iloc)
+        lst = prepack.df_filter_prepare_masks(df, fltr, iloc)
         if len(lst) == 1:
             return lst[0]
         else:
@@ -137,7 +137,7 @@ class prepack:
     @staticmethod
     def df_filter_or(df, fltr, iloc=False):
         import numpy as np
-        lst = Prepack.df_filter_prepare_masks(df, fltr, iloc)
+        lst = prepack.df_filter_prepare_masks(df, fltr, iloc)
         if len(lst) == 1:
             return lst[0]
         else:
@@ -220,7 +220,7 @@ class prepack:
 
     @staticmethod
     def parse_excel(filepath, columns, fltr, header=None):
-        pp = Prepack
+        pp = prepack
         df = pp.read_excel(filepath)
 
         # лишние столбцы
@@ -248,7 +248,7 @@ class prepack:
 
     @staticmethod
     def parse_excels(filelist, columns, fltr, header=None):
-        pp = Prepack
+        pp = prepack
         import pandas as pd
 
         # тут отдельно обработаем первый файл
