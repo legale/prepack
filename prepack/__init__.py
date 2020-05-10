@@ -184,7 +184,7 @@ class prepack:
             s = df.iloc[:, col]
         else:
             s = df.loc[:, col]
-
+        
         if cond == 'isnum':
             mask = s.astype(str).str.replace('.', '').str.isnumeric()
         elif cond == 'isblank':
@@ -193,6 +193,10 @@ class prepack:
             m1 = ~(s.astype(str).str.strip() == '')
             m2 = ~s.astype(str).str.replace('.', '').str.isnumeric()
             mask = m1 & m2
+        elif cond[:9] == 'contains=':
+            import re
+            cond = cond[9:]
+            mask = s.astype(str).str.contains(cond, flags=re.IGNORECASE, na=False, regex=True)
         else:
             if operator == '<':
                 mask = s < cond
