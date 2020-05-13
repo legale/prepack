@@ -93,14 +93,25 @@ class prepack:
     @staticmethod
     def load(filepath):
         import pickle as pkl
-        with open(filepath, "rb") as f:
-            return pkl.load(f)
+        if filepath.endswith('.gz'):
+            import gzip
+            f = gzip.open(filepath, 'rb')      
+        else:
+            f = open(filepath, "rb")
+        res = pkl.load(f)
+        f.close()
+        return res
 
     @staticmethod
     def save(data, filepath):
-        import pickle as pkl
-        with open(filepath, "wb") as f:
-            return pkl.dump(data, f, 2)  # 2 is protocol version
+        import pickle as pkl        
+        if filepath.endswith('.gz'):
+            import gzip
+            f = gzip.open(filepath, 'wb')
+        else:
+            f = open(filepath, 'wb')
+        pkl.dump(data, f, 2)  # 2 is protocol version
+        return f.close()
 
     @staticmethod
     def read_excels(filepath):

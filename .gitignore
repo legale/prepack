@@ -1,0 +1,8 @@
+/.idea/
+/dist/
+__pycache__/
+
+#include all hidden files
+.*
+#exclude .gitignore
+!.gitignore
