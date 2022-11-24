@@ -134,9 +134,9 @@ class prepack:
         return names, tuple(lst)
 
     @staticmethod
-    def df_filter_and(df, fltr, iloc=False):
+    def df_filter_and(df, filter, iloc=False):
         import numpy as np
-        lst = prepack.df_filter_parse_conditions(df, fltr, iloc)
+        lst = prepack.df_filter_parse_conditions(df, filter, iloc)
         if len(lst) == 1:
             return lst[0]
         else:
@@ -146,9 +146,9 @@ class prepack:
             return res
 
     @staticmethod
-    def df_filter_or(df, fltr, iloc=False):
+    def df_filter_or(df, filter, iloc=False):
         import numpy as np
-        lst = prepack.df_filter_parse_conditions(df, fltr, iloc)
+        lst = prepack.df_filter_parse_conditions(df, filter, iloc)
         if len(lst) == 1:
             return lst[0]
         else:
@@ -159,10 +159,10 @@ class prepack:
 
     # Этот метод нужен для подготовки списка масок для методов df_filter_or df_filter_and
     @staticmethod
-    def df_filter_parse_conditions(df, fltr, iloc):
+    def df_filter_parse_conditions(df, filter, iloc):
         lst = []
-        for col in fltr:
-            cond = fltr[col]
+        for col in filter:
+            cond = filter[col]
             lst += prepack.df_filter_parse_condition(df, col, cond, iloc)
         return lst
 
@@ -197,17 +197,17 @@ class prepack:
             s = df.loc[:, col]
         
         if cond == 'isnum':
-            mask = s.astype(str).str.replace('.', '').str.isnumeric()
+            mask = s.astype('string').str.replace('.', '', regex=False).str.isnumeric()
         elif cond == 'isblank':
-            mask = s.astype(str).str.strip() == ''
+            mask = s.astype('string').str.strip() == ''
         elif cond == 'istext':
-            m1 = ~(s.astype(str).str.strip() == '')
-            m2 = ~s.astype(str).str.replace('.', '').str.isnumeric()
+            m1 = ~(s.astype('string').str.strip() == '')
+            m2 = ~s.astype('string').str.replace('.', '', regex=False).str.isnumeric()
             mask = m1 & m2
         elif cond[:9] == 'contains=':
             import re
             cond = cond[9:]
-            mask = s.astype(str).str.contains(cond, flags=re.IGNORECASE, na=False, regex=True)
+            mask = s.astype('string').str.contains(cond, flags=re.IGNORECASE, na=False, regex=True)
         else:
             if operator == '<':
                 mask = s < cond
@@ -262,70 +262,128 @@ class prepack:
         return res
 
     @staticmethod
-    def parse_excel(filepath, columns, fltr, header=None):
+    def parse_excel(filepath, columns=None, filter=None, header_range=None, table_range=None):
+        import pandas as pd
         pp = prepack
-        df = pp.read_excel(filepath)
-
-        # лишние столбцы
-        # данные только с 0 по 12 столбец
-        df = df.iloc[:, columns[0]:columns[1]]
-
-        if header:
+        df = pd.read_excel(filepath, header=None)
+        return pp.parse_df(df, columns=columns, filter=filter, header_range=header_range, table_range=table_range)
+        
+     
+    @staticmethod
+    def parse_df(df, columns=None, filter=None, header_range=None, table_range=None):
+        pp = prepack
+        if columns == None and table_range == None:
+            print("columns or table_range arg are not passed")
+            return None
+        
+        if header_range:
             # вытащим заголовки столбцов из нужных строк в файле
-            cols = []
-            for i in header:
-                cols = pp.list_concat(cols, list(df.iloc[i]))
+            first = pp.df_find_row_col(df, header_range[0])
+            if not first:
+                print("%s header_range first cell not found " % header_range[0])
+                return None
 
+            last = pp.df_find_row_col(df, header_range[1])
+            if not last:
+                print("%s header_range last cell not found " % header_range[1])
+                return None
+
+            # +1 т.к. в range только предпосл. знач.
+            header_min = min(first[0], last[0])
+            header_max = max(first[0], last[0])
+            header_rows = range(header_min, header_max + 1) 
+
+            cols = []
+            for i in header_rows:
+                cols = pp.list_concat(cols, list(df.iloc[i]))
+            
+            
             # очистка названий от переносов строк
             for i, el in enumerate(cols):
-                cols[i] = cols[i].replace('\n', '')
+                cols[i] = cols[i].replace('\n', ' ')
 
-                # устанавливаем названия
+            # устанавливаем названия
             df.columns = cols
 
-        # фильтруем строки
-        f = pp.df_filter_and(df, fltr, True)
-        df = df[f].reset_index(drop=True)
+    
+        #Если есть table_range пробуем динамически искать границы таблицы
+        if table_range:
+            first = pp.df_find_row_col(df, table_range[0])
+            if not first:
+                print("%s first cell not found " % table_range[0])
+                return None
+                
+            last = pp.df_find_row_col(df, table_range[1])
+            if not last:
+                print("%s last cell not found " % table_range[1])
+                return None
+            
+            if header_rows:
+                first_row = header_max + 1
+            else:
+                first_row = max(first[0],last[0])+1
+            
+            
+            # индексы столбцов после поиска
+            df = df.iloc[first_row:, first[1]:last[1] + 1] # +1 to get include last col itself
+        else:
+            # индексы столбцов из columns
+            df = df.iloc[:, columns[0]:columns[1]]
+
+
+
+        # фильтруем строки если задан фильтр
+        if filter != None:
+            f = pp.df_filter_and(df, filter, True)
+            df = df[f]
+        else:
+            df = df
+
 
         return df
 
+
     @staticmethod
-    def parse_excels(filelist, columns, fltr, header=None):
+    def parse_excels(filelist, columns=None, filter=None, header_range=None, table_range=None):
         pp = prepack
         import pandas as pd
+        if columns == None and table_range == None:
+            print("columns or table_range arg are not passed")
+            return None
 
         # тут отдельно обработаем первый файл
         dff = []
         cols = []
         filepath = filelist[0]
 
-        df = pp.parse_excel(filepath=filepath, columns=columns, fltr=fltr, header=header)
-
+        df = pp.parse_excel(filepath=filepath, columns=columns, filter=filter, header_range=header_range, table_range=table_range)
+        
         # Если есть заголовки, сохраним их в cols
-        if header:
+        if header_range:
             cols = list(df.columns)
             # тут поставим числовые заголовки
             df.columns = range(0, len(df.columns))
 
         # добавим столбец с именем файла источника
         df['src_filename'] = pp.get_filename(filepath)
-
         # запишем
         dff.append(df)
-
+        
         for i in range(1, len(filelist)):
             filepath = filelist[i]
-            df = pp.parse_excel(filepath=filepath, columns=columns, fltr=fltr, header=None)
+            df = pp.parse_excel(filepath=filepath, columns=columns, filter=filter, header_range=header_range, table_range=table_range)
             df['src_filename'] = pp.get_filename(filepath)
             dff.append(df)
-
+    
+        
         res = pd.concat(dff, axis=0).reset_index(drop=True)
-        if header:
+        if header_range:
             cols.append('src_filename')
             res.columns = cols
 
         return res
 
+    
     @staticmethod
     def get_filename(filepath):
         import os
@@ -340,3 +398,19 @@ class prepack:
         filename, ext = os.path.splitext(basename)
 
         return filename
+
+    @staticmethod
+    def df_find_row_col(df, value):
+        found = []
+        cols = df.shape[1] #кол-во столбцов
+        for i in range(cols):
+            lst = df.iloc[:,i][df.iloc[:,i] == value].index.tolist()
+            l = len(lst)
+            if l == 0:
+               continue; 
+            elif l > 1:
+                print("warning value %s found more than once (%d)\n" % (value, l))
+                
+            return [lst[0], i]
+             
+        return None
